@@ -1,0 +1,15 @@
+name: birds-env
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.10
+  - numpy==1.26.4
+  - pandas==2.2.2
+  - scikit-learn==1.2.2
+  - scikit-image==0.24.0
+  - matplotlib>=3.5
+  - seaborn==0.12.2
+  - pytorch==2.0
+  - torchvision
+  - pip
