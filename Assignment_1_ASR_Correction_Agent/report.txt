@@ -1,0 +1,60 @@
+Yash Bansal:- 2022CS51133, Nikhil Zawar:- 2022CS11106
+
+ASR Correction Agent
+
+Algorithm: Beam Search with revert-back strategy
+
+State Formulation: Each state is represented as a 6-tuple. The following are the elements of the 6-tuple:
+1. Tokenized Sentence: A vector of the current sentence, split into individual letters and spaces.
+2. Bitstring: A binary string where each element corresponds to a token from the initial sentence, with 0 indicating no change and 1 indicating a change.
+3. First Word that can be added: A string representing a word added to the start of the sentence (empty if no word added).
+4. Last Word that can be added: A string representing a word added to the end of the sentence (empty if no word added).
+5. Cost: The cost associated with the current sentence calculated using environment.compute_cost().
+6. Changes Log: A vector consisting of the token indices where changes have been made as compared to the original tokens. The function of this might look redundant to that of Bitstring, but such state formulation aids in algorithm design at a later stage(explained below).
+
+Expansion Process:
+1. Initialization:- Start with the original sentence as the initial state & form the original tokens.
+
+2. Word Addition using vocabulary.json:
+   - For each state in the current set of states, generate new states by adding each word from the vocabulary to the start of the sentence. 
+   - Calculate the cost for each new state.
+   - Select the top k states with the lowest costs(here, k=3). These are the new current states('curr_states').
+   - Repeat the same process by adding each vocabulary word to the end of the sentence for each current state('curr_states'), and select the top k states(here, k = 10).
+
+3. Letter-by-Letter Correction using phoneme_table.json:
+   - For each state, iterate through each token from the tokenized array.
+   - If the letter has been changed already: Do nothing.
+   - If the letter has not been changed: 
+     - Generate new states by considering all possible replacements for the current letter and combinations of two-letter replacements starting from the current letter.
+     - This generation of new state is merely a change of tokens. The tokenized way of maintaining the state makes this step efficient and error-free. 
+     - Change the bitstring and the changes log accordingly for the newly generated states.
+     - Add these new states to the set of current states.
+   - Apply BEAM SEARCH by selecting the top k states(here, k = 8) with the lowest costs after each iteration.
+   - Update the self.best_state with the current best state.
+
+   Choosing the value of k for BEAM SEARCH: We have chosen k = 8, after experimenting the algorithm's accuracy and efficiency, along with utilisation of available hardware resources. Key observations include - The bottleneck for the time consumed is the compute_cost function. On GPU P100(on Kaggle), we observe that 12 compute calls are executed in 1 second. So, deciding the value of k is a crucial part in the algorithm.
+
+4. Reverting Harmful Changes:
+   - Until now, after processing all letters from the phoneme_table and all words from the vocabulary, the algorithm will have the top 8 sentence candidates, each containing various possible combinations of changes.
+   - This step is crucial because, the way beam search works is not transitive. Let's consider two independent changes - change1 and change2. Performing change1 on the initial sentence and then change2 on the modified sentence, will give different results if change2 is performed before change1. So to make sure we reach the global minima for cost function, for each sentence, we would perform the following REVERT-BACK steps.
+   - Remove First/Last Words: For each top sentence, try removing any prepended or appended words to see if it results in a lower cost. This step helps avoid local minima caused by word additions.
+   - Now, use changes log array, which is the 6th element of the 6-tuple state, and revert-back these changes, again with the beam search algorithm with k=3, to check for a lower cost state.
+
+5. Final Selection:
+   - Update the self.best_state with the current best state.
+   - The algorithm returns the best solution after considering all modifications and corrections.
+
+
+Other Approaches Considered:
+
+1. Hill Climbing:- Attempted but was not effective for this problem. In few cases the results reached the global minimum and the algorithm was much faster (approximately 30 seconds per sentence). But in majority of cases the algorithm would end up in a local minima differenty from global minimum. The implementation can result in computational overload.
+
+2. Enforced Hill Climbing:- We thought about the idea, where after reaching a local minima, do a BFS to find a better state than the local minima. This would not satisfy the time constriants and would cause computational overload. 
+
+3. Simulated Annealing: Explored as an alternative but did not yield better results. This algorithm uses probability while entering the incorrect states. Since the number of incorrect states is much larger than the number of correct states, it is highly possible to enter a incorrrect state at high temperature. In this algorithm once a incorrect state is entered there is no coming back. That is why this gave us incorrect results for almost all sentences. Also, this algorithm gives different results everytime it is executed.
+
+4. Random Walk: The problem here is same as Simulated Annealing. The algorithm gives different results everytime it is executed. Also we cannot have a fixed number of iterations for variable length sentences, since we can also have paragraphs to be corrected.
+
+5. Word-Level Splitting in Beam Search: Implemented a variant where the sentence was split into words rather than letters. While effective for shorter words, it struggled with longer words, leading to its dismissal.
+
+This report summarizes our approach to ASR correction using a customized beam search algorithm, along with other methods we explored during development. We have attached code snippets in comments in our final submission.
