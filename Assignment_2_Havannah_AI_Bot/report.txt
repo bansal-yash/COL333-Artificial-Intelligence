@@ -1,0 +1,32 @@
+2022CS51133 - Yash Bansal
+2022CS11106 - Nikhil Zawar
+
+Algorithm: Combination of Minimax and Monte-Carlo Tree Search
+
+Minimax Strategy: We explore up to 3-ply depth to check for potential wins or losses for both players. This primarily focuses on defense and is time-efficient. If no defense is required within 3-ply, we switch to offense, aiming to increase winning chances. The defense is crucial when a virtual connection is formed. A virtual connection is a potential link between two cells or between a cell and an edge that can be completed regardless of the opponent's move, ensuring the same or similar outcome through 2 different paths.
+
+1. 1-move win/lose check: For the player, if a move leads to a win, it is played. If the opponent has a winning move, it is blocked. All possible moves are evaluated.
+
+2. 2-move win/lose check: This step tries to find opportunities to form virtual connections. If the opponent can form a virtual connection in one move, it is blocked. If the player can form one, it is made instantly. Creating a virtual connection increases the chance of winning in subsequent moves.
+
+3. 3-move win/lose check: This is one of those functions which helps in defending against some of the more robust players. In this function we check if there is a move, which once played, gives a possibility of forming a virtual connection in the subsequent move either with other nodes or with walls, then this move can lead to a win in a total of 3 moves. If there is such a move for opponent then block it, and if there is such a move for yourself play it, in the hope to play the next move making the virtual connection.
+
+Pattern Database:
+For a board with dimensions of 4x4, we have identified certain fixed configurations that guarantee a forced win within 2 or 3 moves. Utilizing these configurations significantly improves winning chances. If the opponent is close to forming such a setup, it is blocked. If the AI can form one, it results in a forced win.
+
+Monte-Carlo Tree Search (MCTS):
+- Functions: The key functions include `run_simulation`, which calls `selection`, `expansion`, `simulation`, and `backpropagation`.
+- Overview: 
+  - Select an unexplored node from the tree.
+  - Expand this node by adding its children.
+  - Among the children, choose the one with the highest UCB value.
+  - Perform a random rollout to a leaf node to evaluate if the move leads to a win/loss.
+  - Based on the result, update the node’s win count and backpropagate the value to the root.
+
+The rollout is repeated multiple times, resulting in a tree where nodes with higher win probabilities have a greater UCB value. A random rollout policy is used for simulation to the leaf node. We also tested a mate-in-one move rollout policy, but this increased the time per iteration and reduced the total number of iterations.
+
+Optimization:
+The performance boost in MCTS comes from storing the neighbors of connected components. The algorithm tracks the neighbors of the largest and most open connected components. These neighbors are prioritized during selection, expansion, and UCB calculation, enhancing the "LOCAL REPLY" effect. In Havannah, locality of moves is crucial, as focusing on nearby cells improves winning chances and disrupts the opponent's strategy.
+
+Time Management:
+The algorithm is designed with fixed time quotas for specific move ranges: the first 10 moves, moves 11-25, moves 26-35, and the final 10 moves. Defense is implemented first, taking minimal time (~0.1 s), followed by database lookups, and then the MCTS tree. This approach ensures that defense is quick, allowing saved time to be used for additional MCTS iterations in subsequent moves.
